@@ -187,7 +187,7 @@ func (proc *ConsensusProcess) validateRole(m *pb.HareMessage) bool {
 	// TODO: validate role proof
 
 	// validate claimedRole
-	expectedRole := proc.oracle.Role(m.Message.K, Signature(m.Message.RoleProof))
+	expectedRole := proc.oracle.Role(Signature(m.Message.RoleProof))
 	claimedRole := roleFromRoundCounter(m.Message.K)
 	if expectedRole != claimedRole {
 		log.Warning("Invalid claimedRole detected. Expected: %v Actual: %v", expectedRole, claimedRole)
@@ -275,12 +275,14 @@ func (proc *ConsensusProcess) advanceToNextRound() {
 }
 
 func (proc *ConsensusProcess) beginRound1() {
+	proc.statusesTracker = NewStatusTracker(proc.cfg.F+1, proc.cfg.N)
 	statusMsg := proc.initDefaultBuilder(proc.s).SetType(Status).Sign(proc.signing).Build()
 	proc.sendMessage(statusMsg)
-	proc.statusesTracker = NewStatusTracker(proc.cfg.F+1, proc.cfg.N)
 }
 
 func (proc *ConsensusProcess) beginRound2() {
+	proc.proposalTracker = NewProposalTracker(proc.cfg.N)
+
 	if proc.role == Leader && proc.statusesTracker.IsSVPReady() {
 		builder := proc.initDefaultBuilder(proc.statusesTracker.ProposalSet(proc.cfg.SetSize))
 		svp := proc.statusesTracker.BuildSVP()
@@ -294,19 +296,19 @@ func (proc *ConsensusProcess) beginRound2() {
 
 	// done with building proposal, reset statuses tracking
 	proc.statusesTracker = nil
-	proc.proposalTracker = NewProposalTracker(proc.cfg.N)
 }
 
 func (proc *ConsensusProcess) beginRound3() {
 	proposedSet := proc.proposalTracker.ProposedSet()
+
+	// proposedSet may be nil, in such case the tracker will ignore messages
+	proc.commitTracker = NewCommitTracker(proc.cfg.F+1, proc.cfg.N, proposedSet) // track commits for proposed set
+
 	if proposedSet != nil { // has proposal to send
 		builder := proc.initDefaultBuilder(proposedSet).SetType(Commit).Sign(proc.signing)
 		commitMsg := builder.Build()
 		proc.sendMessage(commitMsg)
 	}
-
-	// proposedSet may be nil, in such case the tracker will ignore messages
-	proc.commitTracker = NewCommitTracker(proc.cfg.F+1, proc.cfg.N, proposedSet) // track commits for proposed set
 }
 
 func (proc *ConsensusProcess) beginRound4() {
@@ -482,5 +484,5 @@ func (proc *ConsensusProcess) endOfRound3() {
 }
 
 func (proc *ConsensusProcess) updateRole() {
-	proc.role = proc.oracle.Role(proc.k, proc.roleProof())
+	proc.role = proc.oracle.Role(proc.roleProof())
 }

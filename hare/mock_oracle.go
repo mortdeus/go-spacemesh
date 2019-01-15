@@ -3,6 +3,8 @@ package hare
 import (
 	"encoding/binary"
 	"github.com/spacemeshos/go-spacemesh/crypto"
+	"github.com/spacemeshos/go-spacemesh/log"
+	"math"
 	"sync"
 )
 
@@ -15,16 +17,17 @@ const (
 )
 
 type Rolacle interface {
-	Role(r uint32, sig Signature) Role
+	Role(sig Signature) Role
 }
 
 type MockHashOracle struct {
-	clients       map[string]struct{}
-	comitySize    int
+	clients    map[string]struct{}
+	comitySize int
+	mutex      sync.Mutex
 }
 
 // N is the expected comity size
-func NewMockOracle(expectedSize int, comitySize int) *MockHashOracle {
+func NewMockHashOracle(expectedSize int, comitySize int) *MockHashOracle {
 	mock := new(MockHashOracle)
 	mock.clients = make(map[string]struct{}, expectedSize)
 	mock.comitySize = comitySize
@@ -33,6 +36,9 @@ func NewMockOracle(expectedSize int, comitySize int) *MockHashOracle {
 }
 
 func (mock *MockHashOracle) Register(pubKey crypto.PublicKey) {
+	mock.mutex.Lock()
+	defer mock.mutex.Unlock()
+
 	if _, exist := mock.clients[pubKey.String()]; exist {
 		return
 	}
@@ -41,21 +47,22 @@ func (mock *MockHashOracle) Register(pubKey crypto.PublicKey) {
 }
 
 func (mock *MockHashOracle) Unregister(pubKey crypto.PublicKey) {
+	mock.mutex.Lock()
 	delete(mock.clients, pubKey.String())
+	mock.mutex.Unlock()
 }
 
-func (mock *MockHashOracle) Role(k uint32, proof Signature) Role {
+func (mock *MockHashOracle) Role(proof Signature) Role {
 	if proof == nil {
+		log.Warning("Oracle query with proof=nil. Returning passive")
 		return Passive
 	}
 
-	population := len(mock.clients)
-	singleProbability := mock.comitySize / population
-	threshLeader := 1 * singleProbability
-	threshActive := 2
+	population := float32(len(mock.clients))
+	threshLeader := uint32(float32(5) / population * math.MaxUint32)               // expect 5 leaders
+	threshActive := uint32(float32(mock.comitySize) / population * math.MaxUint32) // expect comitySize actives
 
 	data := binary.LittleEndian.Uint32(proof)
-
 	if data < threshLeader {
 		return Leader
 	}
