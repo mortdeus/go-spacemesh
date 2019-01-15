@@ -2,6 +2,7 @@ package hare
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/spacemeshos/go-spacemesh/crypto"
 	"github.com/stretchr/testify/assert"
 	"math"
@@ -10,18 +11,18 @@ import (
 	"time"
 )
 
-const comitySize = 15
-const expectedSize = 20
+const comitySize = 18
+const numOfClients = 20
 
 func TestMockHashOracle_Register(t *testing.T) {
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	oracle.Register(generatePubKey(t))
 	oracle.Register(generatePubKey(t))
 	assert.Equal(t, 2, len(oracle.clients))
 }
 
 func TestMockHashOracle_Unregister(t *testing.T) {
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	pub := generatePubKey(t)
 	oracle.Register(pub)
 	assert.Equal(t, 1, len(oracle.clients))
@@ -30,7 +31,7 @@ func TestMockHashOracle_Unregister(t *testing.T) {
 }
 
 func TestMockHashOracle_Concurrency(t *testing.T) {
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	c := make(chan crypto.PublicKey, 1000)
 	done := make(chan int, 2)
 
@@ -66,8 +67,8 @@ func genSig() Signature {
 }
 
 func TestMockHashOracle_Role(t *testing.T) {
-	oracle := NewMockHashOracle(expectedSize, comitySize)
-	for i := 0; i < expectedSize; i++ {
+	oracle := NewMockHashOracle(numOfClients, comitySize)
+	for i := 0; i < numOfClients; i++ {
 		pub := generatePubKey(t)
 		oracle.Register(pub)
 	}
@@ -75,7 +76,7 @@ func TestMockHashOracle_Role(t *testing.T) {
 	passive := 0
 	active := 0
 	leader := 0
-	for i := 0; i < expectedSize; i++ {
+	for i := 0; i < numOfClients; i++ {
 		r := oracle.Role(genSig())
 		switch r {
 		case Passive:
@@ -89,7 +90,8 @@ func TestMockHashOracle_Role(t *testing.T) {
 		}
 	}
 
-	//fmt.Printf("P=%v A=%v L=%v\n", passive, active, leader)
+	fmt.Printf("P=%v A=%v L=%v\n", passive, active, leader)
+
 	total := active + leader
 	if math.Abs(float64(comitySize - total)) > 10 * comitySize { // allow only 10% deviation
 		t.Errorf("Comity size error. Expected: %v Actual %v", comitySize, total)

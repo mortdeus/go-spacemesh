@@ -125,7 +125,7 @@ func Test_ThreeNodes_HareIntegrationSuite(t *testing.T) {
 	set2.Add(value1)
 	his.initialSets = []*Set{set1, set1, set2}
 	his.honestSets = []*Set{set1}
-	oracle := NewMockHashOracle(expectedSize, cfg.N)
+	oracle := NewMockHashOracle(numOfClients, cfg.N)
 	his.BeforeHook = func(idx int, s p2p.NodeTestInstance) {
 		broker := NewBroker(s)
 		proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *his.initialSets[idx], oracle, NewMockSigning(), s)
@@ -156,7 +156,7 @@ func Test_100Nodes_HareIntegrationSuite(t *testing.T) {
 		t.Skip()
 	}
 	const roundDuration = time.Second * time.Duration(5)
-	cfg := config.Config{N: 20, F: 10, SetSize: 10, RoundDuration: roundDuration}
+	cfg := config.Config{N: 20, F: 8, SetSize: 10, RoundDuration: roundDuration}
 
 	his := &hareIntegration100Nodes{newIntegrationSuite()}
 	his.BootstrappedNodeCount = cfg.N - 3
@@ -174,7 +174,7 @@ func Test_100Nodes_HareIntegrationSuite(t *testing.T) {
 	his.fill(set2, 6, 12)
 	his.fill(set3, 13, cfg.N-1)
 	his.honestSets = []*Set{set1, set2, set3}
-	oracle := NewMockHashOracle(cfg.N, cfg.N / 2)
+	oracle := NewMockHashOracle(cfg.N, 18)
 	his.BeforeHook = func(idx int, s p2p.NodeTestInstance) {
 		log.Info("Starting instance ", idx)
 		broker := NewBroker(s)

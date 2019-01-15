@@ -30,7 +30,7 @@ func TestConsensusProcess_StartTwice(t *testing.T) {
 
 	broker := NewBroker(n1)
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
@@ -48,7 +48,7 @@ func TestConsensusProcess_eventLoop(t *testing.T) {
 
 	broker := NewBroker(n1)
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
@@ -66,7 +66,7 @@ func TestConsensusProcess_handleMessage(t *testing.T) {
 
 	broker := NewBroker(n1)
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
@@ -83,7 +83,7 @@ func TestConsensusProcess_nextRound(t *testing.T) {
 
 	broker := NewBroker(n1)
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
@@ -100,7 +100,7 @@ func generateConsensusProcess(t *testing.T) *ConsensusProcess {
 	n1 := sim.NewNode()
 
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	return NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
@@ -169,7 +169,7 @@ func TestConsensusProcess_sendMessage(t *testing.T) {
 	n1 := sim.NewNode()
 	broker := NewBroker(n1)
 	s := NewEmptySet(cfg.SetSize)
-	oracle := NewMockHashOracle(expectedSize, comitySize)
+	oracle := NewMockHashOracle(numOfClients, comitySize)
 	signing := NewMockSigning()
 
 	proc := NewConsensusProcess(cfg, generatePubKey(t), *instanceId1, *s, oracle, signing, n1)
