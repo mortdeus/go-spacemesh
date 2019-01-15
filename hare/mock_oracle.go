@@ -2,6 +2,7 @@ package hare
 
 import (
 	"encoding/binary"
+	"github.com/spacemeshos/go-spacemesh/crypto"
 	"sync"
 )
 
@@ -18,27 +19,48 @@ type Rolacle interface {
 }
 
 type MockHashOracle struct {
-	isLeaderTaken bool
+	clients       map[string]struct{}
+	comitySize    int
 }
 
-func NewMockOracle() *MockHashOracle {
-	mock := &MockHashOracle{}
+// N is the expected comity size
+func NewMockOracle(expectedSize int, comitySize int) *MockHashOracle {
+	mock := new(MockHashOracle)
+	mock.clients = make(map[string]struct{}, expectedSize)
+	mock.comitySize = comitySize
 
 	return mock
 }
 
-func (mockOracle *MockHashOracle) Role(r uint32, proof Signature) Role {
+func (mock *MockHashOracle) Register(pubKey crypto.PublicKey) {
+	if _, exist := mock.clients[pubKey.String()]; exist {
+		return
+	}
+
+	mock.clients[pubKey.String()] = struct{}{}
+}
+
+func (mock *MockHashOracle) Unregister(pubKey crypto.PublicKey) {
+	delete(mock.clients, pubKey.String())
+}
+
+func (mock *MockHashOracle) Role(k uint32, proof Signature) Role {
 	if proof == nil {
 		return Passive
 	}
 
+	population := len(mock.clients)
+	singleProbability := mock.comitySize / population
+	threshLeader := 1 * singleProbability
+	threshActive := 2
+
 	data := binary.LittleEndian.Uint32(proof)
 
-	if data < 10 {
+	if data < threshLeader {
 		return Leader
 	}
 
-	if data < 10000 {
+	if data < threshActive {
 		return Active
 	}
 
